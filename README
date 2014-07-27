@@ -1,14 +1,14 @@
 MPD Bookmark is a simple script witch monitor MPD and keep a trace of where the listening of a file ended.
 
 *Introduction
-The aim of this programme is to make listening of long file like podcast more easy. MPD Bookmark save where the listening of file ended. And will seek to this place when you will replay it again.
+The aim of this program is to make listening of long file like podcast more easy. MPD Bookmark save where the listening of file ended. And will seek to this place when you will replay it again.
 
 *How to use it
 Just launch it while using MPD. (it is not yet a daemon)
 
 
 *Dependency
-This scripts use the MPDClient librairie to comunicate with MPD.
+This scripts use the MPDClient library to communicate with MPD.
 
 
 
