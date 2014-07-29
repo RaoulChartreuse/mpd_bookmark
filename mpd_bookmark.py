@@ -1,6 +1,7 @@
 from mpd import MPDClient
 from select import select
-import time
+import time, re
+
 
 class MPDBookmark(object):
     def __init__(self, host="localhost", port=6600, password=None):
@@ -13,7 +14,8 @@ class MPDBookmark(object):
         except :
             print "merde"
             exit
-        
+        self.motif="couleur 3"
+        self.tag="album"
         self.boucle()
 
     def stats(self):
@@ -30,7 +32,8 @@ class MPDBookmark(object):
         select([self.client], [], [], 60)
         return self.client.fetch_idle()
     
-    
+    def verif_motif(self, song):
+        return re.match(self.motif, song[self.tag])
 
     def boucle(self):
         
@@ -51,7 +54,7 @@ class MPDBookmark(object):
                 print "fin de chanson", song['title'],
                 print "( ",int(new_ts-ts),
                 print "/",song['time']," )"
-                if song['album']=='couleur 3':
+                if self.verif_motif(song):
                     last_up=int(new_ts-ts)
                     self.client.sticker_set('song', song['file'], 
                                             'last_up', last_up)
