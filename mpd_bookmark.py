@@ -15,7 +15,7 @@ class MPDBookmark(object):
             print "merde"
             exit
         self.motif="couleur 3"
-        self.tag="album"
+        self.field="album"
         self.boucle()
 
     def stats(self):
@@ -33,7 +33,7 @@ class MPDBookmark(object):
         return self.client.fetch_idle()
     
     def verif_motif(self, song):
-        return re.match(self.motif, song[self.tag])
+        return re.match(self.motif, song[self.field])
 
     def boucle(self):
         
