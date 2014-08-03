@@ -1,10 +1,12 @@
 from mpd import MPDClient
 from select import select
 import time, re
+import argparse
 
 
 class MPDBookmark(object):
-    def __init__(self, host="localhost", port=6600, password=None):
+    def __init__(self, host="localhost", port=6600, password=None,
+                 motif="Podcast", field="album"):
         self.client = MPDClient()
         try:
             self.client.connect(host, port)
@@ -14,8 +16,8 @@ class MPDBookmark(object):
         except :
             print "merde"
             exit
-        self.motif="couleur 3"
-        self.field="album"
+        self.motif=motif
+        self.field=field
         self.boucle()
 
     def stats(self):
@@ -102,4 +104,20 @@ def select_N_song(client, N=3):
 
 
 if __name__ == '__main__':
-    w=MPDBookmark()
+    parser=argparse.ArgumentParser(description='MPD Bookmark is a simple script witch monitor MPD and keep a trace of where the listening of a file ended.')
+    parser.add_argument('-f','--field', help='Field to look at', 
+                        default='album')
+    parser.add_argument('-m','--motif', help='A regular expression', 
+                        default='Podcast')
+    parser.add_argument('-i','--host', help='Host of MPD', default='localhost')
+    parser.add_argument('-p','--port', help='Port of MPD', default='6600')
+    parser.add_argument('-pw','--password', help='Password of MPD', 
+                        default=None)
+    args=parser.parse_args()
+    
+    w=MPDBookmark(host=args.host,
+                  port=args.port,
+                  password=args.password,
+                  motif=args.motif,
+                  field=args.field)
+    
