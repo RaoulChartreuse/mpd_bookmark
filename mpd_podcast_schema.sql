@@ -17,3 +17,9 @@ create table item (
        -- Definition des status dans l'application
        flux integer not null references flux(id)
 );
+
+create table setup (
+       user primary key,
+       podcast_path text
+       
+);

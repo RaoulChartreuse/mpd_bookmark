@@ -2,6 +2,17 @@ import os
 import sqlite3
 import feedparser
 from time import strftime, strptime, localtime
+import urllib,sys
+
+
+def report(blocknr, blocksize, size):
+    current = blocknr*blocksize
+    sys.stdout.write("\r{0:.2f} %".format(100.0*current/size))
+
+
+def downloadFile(url, path='.'):
+    fname = url.split('/')[-1]
+    urllib.urlretrieve(url, fname, report)
 
 
 def dict_factory(cursor, row):
@@ -15,16 +26,36 @@ def dict_factory(cursor, row):
 class MPDPodcast(object):
     def __init__(self, 
                  db_filename = 'mpd_podcast.db' ,
-                 schema_filename = 'mpd_podcast_schema.sql'):
+                 schema_filename = 'mpd_podcast_schema.sql',
+                 podcast_path = None):
+        #Database setup
         db_is_new= not os.path.exists(db_filename)
         self.db_filename = db_filename
-        if db_is_new:
-            with sqlite3.connect(db_filename) as conn:
-            
+        self.podcast_path = podcast_path
+        with sqlite3.connect(db_filename) as conn:
+            if db_is_new:
+                #Test if the podcast directory is available
+                assert podcast_path != None
+                assert os.path.isdir(podcast_path)
+                
                 print 'Database creation'
                 with open(schema_filename, 'rt') as f:
                     schema= f.read()
                 conn.executescript(schema)
+
+                cursor=conn.cursor()
+                cursor.execute("""
+                INSERT  INTO setup (user, podcast_path)
+                VALUES ('main', :pod_path)
+                """, {'pod_path':podcast_path})
+            else:
+                cursor=conn.cursor()
+                cursor.execute("""
+                SELECT podcast_path FROM setup
+                """)
+                for row in cursor.fetchall():
+                    self.podcast_path=row[0]
+                    print row[0]
     
     def add_flux(self,url, title=None):
         """
@@ -44,6 +75,13 @@ class MPDPodcast(object):
     
         last_update = strftime("%Y-%m-%d %H:%M:%S",P.feed.published_parsed ) if 'published_parsed' in P.feed else strftime("%Y-%m-%d %H:%M:%S")
         print 'last_update :', last_update
+
+        #Check if the directory exist
+        path=os.path.join(self.podcast_path, title)
+        if not os.path.exists(path):
+            os.makedirs(path, 0755)
+        else :
+            print "Warning the path already exist !!!!!!!!!!!!!!!!!"
 
         #Update the database
         last_id=1
@@ -164,17 +202,20 @@ class MPDPodcast(object):
             DELETE FROM flux where id= :flux_id
             """, {'flux_id':flux_id}) 
 
+    def download_item(self, item_id):
+        return 1
+
 
 
 def test():
     #pod='http://podcast.college-de-france.fr/xml/histoire.xml'
     pod="PodcastScience"
-    w=MPDPodcast()
+    w=MPDPodcast(podcast_path="/media/Disque_2/mp3/laurent/Podcast")
     w.add_flux(pod)
     w.print_flux(1)
     w.remove_item(1)    
     #w.remove_flux(1)
-    w.print_items(1)
+    #w.print_items(1)
     
 
 if __name__ == '__main__':
