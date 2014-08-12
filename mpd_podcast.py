@@ -10,6 +10,8 @@ def dict_factory(cursor, row):
         d[col[0]] = row[idx]
     return d
 
+
+
 class MPDPodcast(object):
     def __init__(self, 
                  db_filename = 'mpd_podcast.db' ,
@@ -57,30 +59,28 @@ class MPDPodcast(object):
 
 
         self.check_flux(last_id, P)
+        return last_id
 
 
-    def get_data(table, item_id, column):
-        with sqlite3.connect(self.db_filename) as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            cursor.execute("""
-            SELECT :column FROM :table where id= :item_id
-            ORDER BY id
-            """,  {'column':column,
-                   'table':table,
-                   'item':item_id})
-            return cursor.fetchall()[0][column]
+ #   def get_data(table, item_id, column):
+ #       with sqlite3.connect(self.db_filename) as conn:
+ #           conn.row_factory = sqlite3.Row
+ #           cursor = conn.cursor()
+ #           cursor.execute("""
+ #           SELECT :column FROM :table where id= :item_id
+ #           ORDER BY id
+ #           """,  {'column':column,
+ #                  'table':table,
+ #                  'item':item_id})
+ #           return cursor.fetchall()[0][column]
             
 
     def check_flux(self, flux_id, flux=None, date=None):
         if flux==None:
-            
             flux=feedparser.parse(url)
             if flux.feed=={}:
                 print 'Flux vide'
                 return -1
-
-
 
         with sqlite3.connect(self.db_filename) as conn:
             cursor=conn.cursor()
@@ -118,6 +118,7 @@ class MPDPodcast(object):
             """, {'flux_id':flux_id,
                   'now':now})
 
+
     def list_flux(self, flux_id):
         with sqlite3.connect(self.db_filename) as conn:
             conn.row_factory = dict_factory
@@ -129,11 +130,31 @@ class MPDPodcast(object):
             flux=[row for row in cursor.fetchall() ]
             return flux
 
+
     def print_flux(self, flux_id):
         flux=self.list_flux(flux_id)
         print "id  |  Title  *   last  Update"
         for f in flux:
             print f['id']," | ", f['titre'], " * ",  f['last_update']
+
+
+    def list_items(self, flux_id):
+         with sqlite3.connect(self.db_filename) as conn:
+            conn.row_factory = dict_factory
+            cursor=conn.cursor()
+            cursor.execute("""
+            SELECT * FROM item WHERE flux= :flux_id
+            ORDER BY id
+            """,  {'flux_id':flux_id})
+            items=[row for row in cursor.fetchall() ]
+            return items
+
+
+    def print_items(self,flux_id):
+        items=self.list_items(flux_id)
+        print "id  |  Title * Date"
+        for i in items:
+            print i['id'], ' | ', i['titre'], " * ", i['item_date'] 
 
 
     def remove_item(self, item_id):
@@ -144,6 +165,7 @@ class MPDPodcast(object):
             DELETE FROM item where id= :item_id
             """, {'item_id':item_id})
 
+
     def remove_flux(self, flux_id):
         #remove the directory
         with sqlite3.connect(self.db_filename) as conn:
@@ -153,7 +175,9 @@ class MPDPodcast(object):
             """, {'flux_id':flux_id})
             cursor.execute(""" 
             DELETE FROM flux where id= :flux_id
-            """, {'flux_id':flux_id})            
+            """, {'flux_id':flux_id}) 
+
+
 
 def test():
     #pod='http://podcast.college-de-france.fr/xml/histoire.xml'
@@ -163,6 +187,7 @@ def test():
     w.print_flux(1)
     w.remove_item(1)    
     #w.remove_flux(1)
+    w.print_items(1)
     
 
 if __name__ == '__main__':
