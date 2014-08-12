@@ -1,7 +1,7 @@
 import os
 import sqlite3
 import feedparser
-from time import strftime, strptime
+from time import strftime, strptime, localtime
 
 class MPDPodcast(object):
     def __init__(self, 
@@ -73,6 +73,8 @@ class MPDPodcast(object):
                 print 'Flux vide'
                 return -1
 
+
+
         with sqlite3.connect(self.db_filename) as conn:
             cursor=conn.cursor()
             print 'Flux id     :', flux_id
@@ -99,7 +101,15 @@ class MPDPodcast(object):
                                   'item_date':item_date,
                                   'flux_id':flux_id})
                             print "\n"
-                        
+            #Update the last_update date:
+            now=strftime("%Y-%m-%d %H:%M:%S",localtime())
+            
+            cursor.execute("""
+            UPDATE flux 
+            SET last_update= :now
+            WHERE id = :flux_id
+            """, {'flux_id':flux_id,
+                  'now':now})
 
 if __name__ == '__main__':
     #pod='http://podcast.college-de-france.fr/xml/histoire.xml'
