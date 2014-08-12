@@ -3,6 +3,13 @@ import sqlite3
 import feedparser
 from time import strftime, strptime, localtime
 
+
+def dict_factory(cursor, row):
+    d = {}
+    for idx, col in enumerate(cursor.description):
+        d[col[0]] = row[idx]
+    return d
+
 class MPDPodcast(object):
     def __init__(self, 
                  db_filename = 'mpd_podcast.db' ,
@@ -77,8 +84,8 @@ class MPDPodcast(object):
 
         with sqlite3.connect(self.db_filename) as conn:
             cursor=conn.cursor()
-            print 'Flux id     :', flux_id
-            print "----------------------------------------"
+            #print 'Flux id     :', flux_id
+            #print "----------------------------------------"
             #Add all audio item
             for f in flux.entries:
                 if date==None or date<f.published_parsed:
@@ -88,9 +95,9 @@ class MPDPodcast(object):
                             href=l['href']
                             item_date=strftime("%Y-%m-%d %H:%M:%S",
                                                f.published_parsed )
-                            print '\t title :', item_title 
-                            print '\t url   :', href
-                            print '\t date  :', item_date
+                            #print '\t title :', item_title 
+                            #print '\t url   :', href
+                            #print '\t date  :', item_date
                             status=0
                             cursor.execute("""
                             INSERT INTO item (titre, url, status, item_date, flux)
@@ -100,7 +107,7 @@ class MPDPodcast(object):
                                   'status':status,
                                   'item_date':item_date,
                                   'flux_id':flux_id})
-                            print "\n"
+                            #print "\n"
             #Update the last_update date:
             now=strftime("%Y-%m-%d %H:%M:%S",localtime())
             
@@ -111,8 +118,20 @@ class MPDPodcast(object):
             """, {'flux_id':flux_id,
                   'now':now})
 
+    def list_flux(self, flux_id):
+        with sqlite3.connect(self.db_filename) as conn:
+            conn.row_factory = dict_factory
+            cursor=conn.cursor()
+            cursor.execute("""
+            SELECT * FROM flux WHERE id= :flux_id
+            ORDER BY id
+            """,  {'flux_id':flux_id})
+            flux=[row for row in cursor.fetchall() ]
+            print flux
+
 if __name__ == '__main__':
     #pod='http://podcast.college-de-france.fr/xml/histoire.xml'
     pod="http://feeds.feedburner.com/PodcastScience"
     w=MPDPodcast()
     w.add_flux(pod)
+    w.list_flux(1)
