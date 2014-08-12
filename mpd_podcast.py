@@ -100,6 +100,19 @@ class MPDPodcast(object):
         return last_id
 
 
+ #   def get_data(table, item_id, column):
+ #       with sqlite3.connect(self.db_filename) as conn:
+ #           conn.row_factory = sqlite3.Row
+ #           cursor = conn.cursor()
+ #           cursor.execute("""
+ #           SELECT :column FROM :table where id= :item_id
+ #           ORDER BY id
+ #           """,  {'column':column,
+ #                  'table':table,
+ #                  'item':item_id})
+ #           return cursor.fetchall()[0][column]
+            
+
     def check_flux(self, flux_id, flux=None, date=None):
         if flux==None:
             flux=feedparser.parse(url)
