@@ -127,11 +127,18 @@ class MPDPodcast(object):
             ORDER BY id
             """,  {'flux_id':flux_id})
             flux=[row for row in cursor.fetchall() ]
-            print flux
+            return flux
+
+    def print_flux(self, flux_id):
+        flux=self.list_flux(flux_id)
+        print "id  |  Title  *   last  Update"
+        for f in flux:
+            print f['id']," | ", f['titre'], " * ",  f['last_update']
+
 
 if __name__ == '__main__':
     #pod='http://podcast.college-de-france.fr/xml/histoire.xml'
     pod="http://feeds.feedburner.com/PodcastScience"
     w=MPDPodcast()
     w.add_flux(pod)
-    w.list_flux(1)
+    w.print_flux(1)
