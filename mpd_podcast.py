@@ -1,7 +1,7 @@
 import os
 import sqlite3
 import feedparser
-from time import strftime
+from time import strftime, strptime
 
 class MPDPodcast(object):
     def __init__(self, 
@@ -65,7 +65,7 @@ class MPDPodcast(object):
             return cursor.fetchall()[0][column]
             
 
-    def check_flux(self, flux_id, flux=None):
+    def check_flux(self, flux_id, flux=None, date=None):
         if flux==None:
             
             flux=feedparser.parse(url)
@@ -79,25 +79,26 @@ class MPDPodcast(object):
             print "----------------------------------------"
             #Add all audio item
             for f in flux.entries:
-                for l in f.links:
-                    if l.rel=="enclosure" and l.type[:5]=="audio":
-                        item_title=f.title
-                        href=l['href']
-                        item_date=strftime("%Y-%m-%d %H:%M:%S",
-                                           f.published_parsed )
-                        print '\t title :', item_title 
-                        print '\t url   :', href
-                        print '\t date  :', item_date
-                        status=0
-                        cursor.execute("""
-                        INSERT INTO item (titre, url, status, item_date, flux)
-                        VALUES ( :title, :url, :status, :item_date , :flux_id)
-                        """, {'title':item_title, 
-                              'url':href,
-                              'status':status,
-                              'item_date':item_date,
-                              'flux_id':flux_id})
-                        print "\n"
+                if date==None or date<f.published_parsed:
+                    for l in f.links:
+                        if l.rel=="enclosure" and l.type[:5]=="audio":
+                            item_title=f.title
+                            href=l['href']
+                            item_date=strftime("%Y-%m-%d %H:%M:%S",
+                                               f.published_parsed )
+                            print '\t title :', item_title 
+                            print '\t url   :', href
+                            print '\t date  :', item_date
+                            status=0
+                            cursor.execute("""
+                            INSERT INTO item (titre, url, status, item_date, flux)
+                            VALUES ( :title, :url, :status, :item_date , :flux_id)
+                            """, {'title':item_title, 
+                                  'url':href,
+                                  'status':status,
+                                  'item_date':item_date,
+                                  'flux_id':flux_id})
+                            print "\n"
                         
 
 if __name__ == '__main__':
