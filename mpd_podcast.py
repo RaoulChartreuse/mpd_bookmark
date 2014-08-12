@@ -136,9 +136,36 @@ class MPDPodcast(object):
             print f['id']," | ", f['titre'], " * ",  f['last_update']
 
 
-if __name__ == '__main__':
+    def remove_item(self, item_id):
+        #remove_item_file()
+         with sqlite3.connect(self.db_filename) as conn:
+            cursor=conn.cursor()
+            cursor.execute("""
+            DELETE FROM item where id= :item_id
+            """, {'item_id':item_id})
+
+    def remove_flux(self, flux_id):
+        #remove the directory
+        with sqlite3.connect(self.db_filename) as conn:
+            cursor=conn.cursor()
+            cursor.execute(""" 
+            DELETE FROM item where flux= :flux_id
+            """, {'flux_id':flux_id})
+            cursor.execute(""" 
+            DELETE FROM flux where id= :flux_id
+            """, {'flux_id':flux_id})            
+
+def test():
     #pod='http://podcast.college-de-france.fr/xml/histoire.xml'
-    pod="http://feeds.feedburner.com/PodcastScience"
+    pod="PodcastScience"
     w=MPDPodcast()
     w.add_flux(pod)
     w.print_flux(1)
+    w.remove_item(1)    
+    #w.remove_flux(1)
+    
+
+if __name__ == '__main__':
+    test()
+
+    
