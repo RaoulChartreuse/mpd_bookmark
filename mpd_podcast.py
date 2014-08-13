@@ -10,9 +10,8 @@ def report(blocknr, blocksize, size):
     sys.stdout.write("\r{0:.2f} %".format(100.0*current/size))
 
 
-def downloadFile(url, path='.'):
-    fname = url.split('/')[-1]
-    urllib.urlretrieve(url, fname, report)
+def downloadFile(url, path):
+    urllib.urlretrieve(url, path, report)
 
 
 def dict_factory(cursor, row):
@@ -95,23 +94,9 @@ class MPDPodcast(object):
             """, {'url':url, 'title':title, 'last_update':last_update})
             last_id=cursor.lastrowid
 
-
         self.check_flux(last_id, P)
         return last_id
 
-
- #   def get_data(table, item_id, column):
- #       with sqlite3.connect(self.db_filename) as conn:
- #           conn.row_factory = sqlite3.Row
- #           cursor = conn.cursor()
- #           cursor.execute("""
- #           SELECT :column FROM :table where id= :item_id
- #           ORDER BY id
- #           """,  {'column':column,
- #                  'table':table,
- #                  'item':item_id})
- #           return cursor.fetchall()[0][column]
-            
 
     def check_flux(self, flux_id, flux=None, date=None):
         if flux==None:
@@ -216,7 +201,31 @@ class MPDPodcast(object):
             """, {'flux_id':flux_id}) 
 
     def download_item(self, item_id):
-        return 1
+        with sqlite3.connect(self.db_filename) as conn:
+            cursor=conn.cursor()
+            cursor.execute("""
+            SELECT url, flux FROM item where id= :item_id
+            """, {'item_id':item_id})
+            url, flux_id =  cursor.fetchall()[0]
+            
+            cursor.execute("""
+            SELECT titre FROM flux where id= :flux_id
+            """, {'flux_id':flux_id})
+            titre_flux, = cursor.fetchall()[0]
+            print url
+            print "to :"
+            path=os.path.join(self.podcast_path,
+                              titre_flux,
+                              url.split('/')[-1])
+            print path            
+            downloadFile(url, path)
+
+            cursor.execute("""
+            UPDATE item
+            SET status=1 
+            WHERE id = :item_id
+            """, {'item_id'=item_id})
+     
 
 
 
@@ -229,7 +238,7 @@ def test():
     w.remove_item(1)    
     #w.remove_flux(1)
     #w.print_items(1)
-    
+    print  w.download_item(12)
 
 if __name__ == '__main__':
     test()
