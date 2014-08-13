@@ -15,7 +15,7 @@ class MPDBookmark(object):
             
         except :
             print "merde"
-            exit
+            assert False
         self.motif=motif
         self.field=field
         self.boucle()

@@ -3,6 +3,7 @@ import sqlite3
 import feedparser
 from time import strftime, strptime, localtime
 import urllib,sys
+from mpd import MPDClient
 
 
 def report(blocknr, blocksize, size):
@@ -26,11 +27,18 @@ class MPDPodcast(object):
     def __init__(self, 
                  db_filename = 'mpd_podcast.db' ,
                  schema_filename = 'mpd_podcast_schema.sql',
-                 podcast_path = None):
+                 podcast_path = None,
+                 host='localhost',
+                 port=6600,
+                 password=None):
         #Database setup
         db_is_new= not os.path.exists(db_filename)
         self.db_filename = db_filename
         self.podcast_path = podcast_path
+        self.host=host
+        self.port=port
+        self.password=password
+
         with sqlite3.connect(db_filename) as conn:
             if db_is_new:
                 #Test if the podcast directory is available
@@ -44,16 +52,20 @@ class MPDPodcast(object):
 
                 cursor=conn.cursor()
                 cursor.execute("""
-                INSERT  INTO setup (user, podcast_path)
-                VALUES ('main', :pod_path)
-                """, {'pod_path':podcast_path})
+                INSERT  INTO setup (user, podcast_path, mpd_host, mpd_port, password)
+                VALUES ('main', :pod_path, :mpd_host, :mpd_port, \':passw\')
+                """, {'pod_path':podcast_path,
+                      'mpd_host':host,
+                      'mpd_port':port,
+                      'passw':password})
             else:
                 cursor=conn.cursor()
                 cursor.execute("""
-                SELECT podcast_path FROM setup
+                SELECT podcast_path, mpd_host, mpd_port, password
+                FROM setup
                 """)
                 for row in cursor.fetchall():
-                    self.podcast_path=row[0]
+                    self.podcast_path, self.host, self.port, self.password = row[0]
                     print row[0]
     
     def add_flux(self,url, title=None):
@@ -200,6 +212,7 @@ class MPDPodcast(object):
             DELETE FROM flux where id= :flux_id
             """, {'flux_id':flux_id}) 
 
+
     def download_item(self, item_id):
         with sqlite3.connect(self.db_filename) as conn:
             cursor=conn.cursor()
@@ -224,21 +237,68 @@ class MPDPodcast(object):
             UPDATE item
             SET status=1 
             WHERE id = :item_id
-            """, {'item_id'=item_id})
+            """, {'item_id':item_id})
+            return path
      
 
+    def check_item(self):
+        with sqlite3.connect(self.db_filename) as conn:
+            cursor=conn.cursor()
+            cursor.execute(""" 
+            SELECT item.id, flux.titre, item.url 
+            FROM  flux, item 
+            WHERE item.status=1;
+            """)
+            
+
+            for row in cursor.fetchall():
+                item_id, titre_flux, url=row
+                path=os.path.join(titre_flux, url.split('/')[-1])
+                if self.is_readed(path):
+                    cursor.execute("""
+                    UPDATE item
+                    SET status=2
+                    WHERE id = :item_id
+                    """,{'item_id':item_id})
+
+    def is_readed(self, path):
+        client=MPDClient()
+        client.connect(self.host, self.port)
+        if self.password:     
+            client.password(self.password) 
+        song,=client.search('file', path)
+        print song
+        if 'last_up' in client.sticker_list('song', song['file']) :
+            last_up = client.sticker_get('song', song['file'], 'last_up')
+            if abs(int(song['time'])-int(last_up))<=4 :
+                client.close()
+                return True
+        client.close()
+        return False
+                
 
 
 def test():
     #pod='http://podcast.college-de-france.fr/xml/histoire.xml'
-    pod="PodcastScience"
+    pod="http://radiofrance-podcast.net/podcast09/rss_11074.xml"
     w=MPDPodcast(podcast_path="/media/Disque_2/mp3/laurent/Podcast")
     w.add_flux(pod)
     w.print_flux(1)
     w.remove_item(1)    
     #w.remove_flux(1)
     #w.print_items(1)
-    print  w.download_item(12)
+    path=w.download_item(3)
+    
+    #Made the item readed
+    path=path.split("/")[-2:]
+    path=os.path.join(path[0], path[1])
+    client=MPDClient()
+    client.connect('localhost', 6600)
+    song,=client.search('file', path)
+    client.sticker_set('song', song['file'], 'last_up',int(song['time']))
+    w.check_item()
+
+
 
 if __name__ == '__main__':
     test()

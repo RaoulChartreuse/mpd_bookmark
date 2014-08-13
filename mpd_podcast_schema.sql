@@ -20,6 +20,8 @@ create table item (
 
 create table setup (
        user primary key,
-       podcast_path text
-       
+       podcast_path text,
+       mpd_host text,
+       mpd_port integer	,
+       password text
 );
