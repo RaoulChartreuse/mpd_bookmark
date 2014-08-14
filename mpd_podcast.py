@@ -4,7 +4,7 @@ import feedparser
 from time import strftime, strptime, localtime
 import urllib,sys
 from mpd import MPDClient
-
+import argparse
 
 def report(blocknr, blocksize, size):
     current = blocknr*blocksize
@@ -65,9 +65,9 @@ class MPDPodcast(object):
                 FROM setup
                 """)
                 #TODO rajouter une procedure d'update
-                for row in cursor.fetchall():
-                    self.podcast_path, self.host, self.port, self.password = row[0]
-                    print row[0]
+                row = cursor.fetchall()
+                self.podcast_path, self.host, self.port, self.password = row[0]
+                print row[0]
     
     def add_flux(self,url, title=None):
         """
@@ -201,9 +201,9 @@ class MPDPodcast(object):
             FROM  flux, item 
             WHERE item.id= :item_id;
             """, {'item_id':item_id})
-
+            
             #Suppression physique
-            titre_flux, nom, status = cursor.fetchall()[0]
+            titre_flux, nom, status = cursor.fetchone()
             if status!=0 :
                 path=os.path.join(self.podcast_path, titre_flux, nom)
                 assert os.path.exists(path)
@@ -361,8 +361,72 @@ def test():
     #    w.remove_dowloaded_item(3)
     w.remove_item(4)
 
+    
+    def main():
+        parser = argparse.ArgumentParser(description="calculate X to the power of Y")
+        group = parser.add_mutually_exclusive_group()
+        group.add_argument("-v", "--verbose", action="store_true")
+        group.add_argument("-q", "--quiet", action="store_true")
+
 
 if __name__ == '__main__':
-    test()
+    parser = argparse.ArgumentParser(description='MPD Podcast is a simple comande line podcast manager. In combinaison with MPD Bookmark and MPD it can autoremove readed file.')
+    parser.add_argument('-i', '--host', help='Host of MPD', default='localhost')
+    parser.add_argument('-p', '--port', help='Port of MPD', default='6600')
+    parser.add_argument('-pw', '--password', help='Password of MPD', 
+                        default=None)
+    parser.add_argument('-db', '--database', help='path of database', 
+                        default='mpd_podcast.db')
+    schema_filename = 'mpd_podcast_schema.sql'#Ce n'est pas un parametre depend de l'instalation
+    parser.add_argument('-pod', '--podcast_path', default=None,
+                        help='Absolute path to where store the dowloaded files')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-lf', '--list_flux', help='List all the Flux', 
+                       nargs='?', const=42)
+    group.add_argument('-a', '--add_flux', 
+                       help='Add the rss flux from the given url')
+    group.add_argument('-li', '--list_items',  
+                       help='List the item from the flux number')
+    group.add_argument('-d', '--dowload', 
+                       help='Download the item')
+    group.add_argument('-ri', '--remove_item', 
+                       help='Remove the item from the database and the filesystem')
+    group.add_argument('-rf', '--remove_flux', 
+                       help='Remove the flux, all flux\'s items will be completly removed')
+    group.add_argument('-del', '--delete_item',
+                       help='Delete the item from the filesystem')
+    group.add_argument('-pu', '--purge_readed', nargs='?', const=42,
+                       help='Delete the readed file')
+    group.add_argument('-t', '--test', help='Lauch the test',nargs='?', const=42)
+    args=parser.parse_args()
+    if args.test: 
+        test()
+        exit
+
+    w=MPDPodcast(db_filename = args.database ,
+                 schema_filename=schema_filename ,
+                 podcast_path = args.podcast_path,
+                 host=args.host,
+                 port=args.port,
+                 password=args.port)
+
+    if  args.list_flux:
+        w.print_flux()
+    elif args.add_flux:
+        w.add_flux(args.add_flux)
+    elif args.list_items:
+        w.print_items(args.list_items)
+    elif args.dowload:
+        w.download_item(args.dowload)
+    elif args.remove_item:
+        w.remove_item(args.remove_item)
+    elif args.remove_flux:
+        w.remove_flux(args.remove_flux)
+    elif args.delete_item:
+        w.remove_dowloaded_item(delete_item)
+    elif args.purge_readed:
+        w.purge_readed()
+    
+        
 
     

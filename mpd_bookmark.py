@@ -41,6 +41,8 @@ class MPDBookmark(object):
         
         ts=time.time()
         state=self.client.status()['state']
+        if state=='play':
+            ts-=float( self.client.status()['elapsed'])
         #sid=self.client.status()['songid']
         song=self.client.currentsong()
         print "\n\n chanson init :", song['title']
@@ -105,7 +107,8 @@ def select_N_song(client, N=3):
 
 if __name__ == '__main__':
     parser=argparse.ArgumentParser(description='MPD Bookmark is a simple script witch monitor MPD and keep a trace of where the listening of a file ended.')
-    parser.add_argument('-f','--field', help='Field to look at', 
+    parser.add_argument('-f','--field', 
+                        help='A field either song, file or any tag', 
                         default='album')
     parser.add_argument('-m','--motif', help='A regular expression', 
                         default='Podcast')
