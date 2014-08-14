@@ -64,6 +64,7 @@ class MPDPodcast(object):
                 SELECT podcast_path, mpd_host, mpd_port, password
                 FROM setup
                 """)
+                #TODO rajouter une procedure d'update
                 for row in cursor.fetchall():
                     self.podcast_path, self.host, self.port, self.password = row[0]
                     print row[0]
@@ -135,8 +136,8 @@ class MPDPodcast(object):
                             #print '\t date  :', item_date
                             status=0
                             cursor.execute("""
-                            INSERT INTO item (titre, url, status, item_date, flux)
-                            VALUES ( :title, :url, :status, :item_date , :flux_id)
+                            INSERT INTO item (titre, url, status, item_date, flux, nom)
+                            VALUES ( :title, :url, :status, :item_date , :flux_id, '')
                             """, {'title':item_title, 
                                   'url':href,
                                   'status':status,
@@ -192,19 +193,64 @@ class MPDPodcast(object):
             print i['id'], ' | ', i['titre'], " * ", i['item_date'] 
 
 
+    def __delete_item(self,item_id):
+        with sqlite3.connect(self.db_filename) as conn:
+            cursor=conn.cursor()
+            cursor.execute(""" 
+            SELECT flux.titre, item.nom, item.status
+            FROM  flux, item 
+            WHERE item.id= :item_id;
+            """, {'item_id':item_id})
+
+            #Suppression physique
+            titre_flux, nom, status = cursor.fetchall()[0]
+            if status!=0 :
+                path=os.path.join(self.podcast_path, titre_flux, nom)
+                assert os.path.exists(path)
+                #TODO Add here a confirmation 
+                os.remove(path)
+
+
     def remove_item(self, item_id):
-        #remove_item_file()
-         with sqlite3.connect(self.db_filename) as conn:
+        """Remove the item from the DB and the filesystem"""
+        self.__delete_item(item_id)
+        with sqlite3.connect(self.db_filename) as conn:
             cursor=conn.cursor()
             cursor.execute("""
             DELETE FROM item where id= :item_id
             """, {'item_id':item_id})
 
 
-    def remove_flux(self, flux_id):
-        #remove the directory
+    def remove_dowloaded_item(self, item_id):
+        """Remove the item from the filesystem, i.e. the dowloaded"""
+        self.__delete_item(item_id)
         with sqlite3.connect(self.db_filename) as conn:
             cursor=conn.cursor()
+            cursor.execute("""
+            UPDATE item
+            SET status=0
+            WHERE id = :item_id
+            """,{'item_id':item_id})
+
+
+    def remove_flux(self, flux_id):
+        with sqlite3.connect(self.db_filename) as conn:
+            cursor=conn.cursor()
+            #Suprimer les items
+            cursor.execute(""" 
+            SELECT flux.titre, item.nom
+            FROM flux, item
+            WHERE item.id = :flux_id
+            """, {'flux_id':flux_id})
+            for row in cursor.fetchall():
+                titre_flux, nom, status = row
+                if status==0:
+                    path=os.path.join(self.podcast_path, titre_flux, nom)
+                    assert os.path.exists(path)
+                    #TODO Add here a confirmation 
+                    os.remove(path)
+            os.removedirs(os.path.join(self.podcast_path, titre_flux))
+
             cursor.execute(""" 
             DELETE FROM item where flux= :flux_id
             """, {'flux_id':flux_id})
@@ -213,31 +259,33 @@ class MPDPodcast(object):
             """, {'flux_id':flux_id}) 
 
 
-    def download_item(self, item_id):
+    def download_item(self, item_id, name=None):
         with sqlite3.connect(self.db_filename) as conn:
             cursor=conn.cursor()
             cursor.execute("""
-            SELECT url, flux FROM item where id= :item_id
+            SELECT item.url, item.flux, flux.titre, item.nom
+            FROM item, flux where item.id= :item_id
             """, {'item_id':item_id})
-            url, flux_id =  cursor.fetchall()[0]
+            url, flux_id, titre_flux, nom =  cursor.fetchall()[0]
+            if name==None:
+                if nom!='':
+                    name=nom
+                else :
+                    name=url.split('/')[-1]
             
-            cursor.execute("""
-            SELECT titre FROM flux where id= :flux_id
-            """, {'flux_id':flux_id})
-            titre_flux, = cursor.fetchall()[0]
             print url
             print "to :"
             path=os.path.join(self.podcast_path,
                               titre_flux,
-                              url.split('/')[-1])
+                              name)
             print path            
             downloadFile(url, path)
 
             cursor.execute("""
             UPDATE item
-            SET status=1 
+            SET status=1 , nom= :name
             WHERE id = :item_id
-            """, {'item_id':item_id})
+            """, {'item_id':item_id, 'name':name})
             return path
      
 
@@ -245,21 +293,21 @@ class MPDPodcast(object):
         with sqlite3.connect(self.db_filename) as conn:
             cursor=conn.cursor()
             cursor.execute(""" 
-            SELECT item.id, flux.titre, item.url 
+            SELECT item.id, flux.titre, item.url, item.nom 
             FROM  flux, item 
             WHERE item.status=1;
             """)
             
-
             for row in cursor.fetchall():
-                item_id, titre_flux, url=row
-                path=os.path.join(titre_flux, url.split('/')[-1])
+                item_id, titre_flux, url, nom=row
+                path=os.path.join(titre_flux, nom)
                 if self.is_readed(path):
                     cursor.execute("""
                     UPDATE item
                     SET status=2
                     WHERE id = :item_id
                     """,{'item_id':item_id})
+
 
     def is_readed(self, path):
         client=MPDClient()
@@ -275,7 +323,7 @@ class MPDPodcast(object):
                 return True
         client.close()
         return False
-                
+
 
 
 def test():
@@ -297,7 +345,8 @@ def test():
     song,=client.search('file', path)
     client.sticker_set('song', song['file'], 'last_up',int(song['time']))
     w.check_item()
-
+    w.remove_dowloaded_item(3)
+    w.remove_item(4)
 
 
 if __name__ == '__main__':

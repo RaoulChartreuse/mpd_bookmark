@@ -15,7 +15,8 @@ create table item (
        status integer ,
        item_date date,
        -- Definition des status dans l'application
-       flux integer not null references flux(id)
+       flux integer not null references flux(id),
+       nom text
 );
 
 create table setup (
