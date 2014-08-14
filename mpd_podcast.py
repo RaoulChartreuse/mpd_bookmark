@@ -325,6 +325,18 @@ class MPDPodcast(object):
         return False
 
 
+    def purge_readed(self):
+        Liste=[]
+        with sqlite3.connect(self.db_filename) as conn:
+            cursor=conn.cursor()
+            cursor.execute("""
+            SELECT id FROM item WHERE status=2""")
+            for row in cursor.fetchall():
+                i,=row
+                Liste.append(i)
+        for i in Liste:
+            self.remove_dowloaded_item(i)
+                
 
 def test():
     #pod='http://podcast.college-de-france.fr/xml/histoire.xml'
@@ -345,7 +357,8 @@ def test():
     song,=client.search('file', path)
     client.sticker_set('song', song['file'], 'last_up',int(song['time']))
     w.check_item()
-    w.remove_dowloaded_item(3)
+    w.purge_readed()
+    #    w.remove_dowloaded_item(3)
     w.remove_item(4)
 
 
