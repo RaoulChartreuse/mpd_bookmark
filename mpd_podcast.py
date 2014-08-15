@@ -68,13 +68,20 @@ class MPDPodcast(object):
                 row = cursor.fetchall()
                 self.podcast_path, self.host, self.port, self.password = row[0]
                 print row[0]
+
+
+    def parse_flux(self, url):
+        #Getting the data
+        P=feedparser.parse(url)
+        assert P!={}
+        return P
     
     def add_flux(self,url, title=None):
         """
         Add a flux to the database, using the url.
         If you give a title it will overwrite the RSS title
         """
-
+        P=self.parse_flux(url)
         #Getting the data
         P=feedparser.parse(url)
         if P.feed=={}:
@@ -111,13 +118,19 @@ class MPDPodcast(object):
         return last_id
 
 
-    def check_flux(self, flux_id, flux=None, date=None):
-        if flux==None:
-            flux=feedparser.parse(url)
-            if flux.feed=={}:
-                print 'Flux vide'
-                return -1
+    def update(self):
+        """The function will check for update every flux"""
+        print "Check update :"
+        print "----------------------------------------"
+        for f in self.list_flux():
+            print f['id'], '|', f['titre'], ' : ', f['last_update'], f['url']
+            P=self.parse_flux(f['url'])
+            self.check_flux(f['id'], P, f['last_update'])
+            
 
+
+    def check_flux(self, flux_id, flux, date=None):
+        assert 'entries' in flux
         with sqlite3.connect(self.db_filename) as conn:
             cursor=conn.cursor()
             #print 'Flux id     :', flux_id
@@ -155,20 +168,19 @@ class MPDPodcast(object):
                   'now':now})
 
 
-    def list_flux(self, flux_id):
+    def list_flux(self):
         with sqlite3.connect(self.db_filename) as conn:
             conn.row_factory = dict_factory
             cursor=conn.cursor()
             cursor.execute("""
-            SELECT * FROM flux WHERE id= :flux_id
-            ORDER BY id
-            """,  {'flux_id':flux_id})
+            SELECT * FROM flux 
+            """)
             flux=[row for row in cursor.fetchall() ]
             return flux
 
 
-    def print_flux(self, flux_id):
-        flux=self.list_flux(flux_id)
+    def print_flux(self):
+        flux=self.list_flux()
         print "id  |  Title  *   last  Update"
         for f in flux:
             print f['id']," | ", f['titre'], " * ",  f['last_update']
@@ -336,14 +348,15 @@ class MPDPodcast(object):
                 Liste.append(i)
         for i in Liste:
             self.remove_dowloaded_item(i)
-                
+       
+         
 
 def test():
     #pod='http://podcast.college-de-france.fr/xml/histoire.xml'
     pod="http://radiofrance-podcast.net/podcast09/rss_11074.xml"
     w=MPDPodcast(podcast_path="/media/Disque_2/mp3/laurent/Podcast")
     w.add_flux(pod)
-    w.print_flux(1)
+    w.print_flux()
     w.remove_item(1)    
     #w.remove_flux(1)
     #w.print_items(1)
@@ -361,13 +374,9 @@ def test():
     #    w.remove_dowloaded_item(3)
     w.remove_item(4)
 
-    
-    def main():
-        parser = argparse.ArgumentParser(description="calculate X to the power of Y")
-        group = parser.add_mutually_exclusive_group()
-        group.add_argument("-v", "--verbose", action="store_true")
-        group.add_argument("-q", "--quiet", action="store_true")
+    w.update()
 
+    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='MPD Podcast is a simple comande line podcast manager. In combinaison with MPD Bookmark and MPD it can autoremove readed file.')
@@ -381,6 +390,8 @@ if __name__ == '__main__':
     parser.add_argument('-pod', '--podcast_path', default=None,
                         help='Absolute path to where store the dowloaded files')
     group = parser.add_mutually_exclusive_group()
+    group.add_argument('-u', '--update', nargs='?', const=42,
+                       help="Parse all the flux")
     group.add_argument('-lf', '--list_flux', help='List all the Flux', 
                        nargs='?', const=42)
     group.add_argument('-a', '--add_flux', 
