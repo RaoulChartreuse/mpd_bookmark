@@ -437,7 +437,8 @@ if __name__ == '__main__':
         w.remove_dowloaded_item(delete_item)
     elif args.purge_readed:
         w.purge_readed()
-    
+    elif args.update:
+        w.update()
         
 
     
