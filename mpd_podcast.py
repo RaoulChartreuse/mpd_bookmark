@@ -91,8 +91,7 @@ class MPDPodcast(object):
             title=P.feed.title
         print 'url         :', url
         print 'title       :', title
-    
-        last_update = strftime("%Y-%m-%d %H:%M:%S",P.feed.published_parsed ) if 'published_parsed' in P.feed else strftime("%Y-%m-%d %H:%M:%S")
+        last_update = strftime("%Y-%m-%d %H:%M:%S",P.feed.published_parsed ) if P.feed['published_parsed']!=None else strftime("%Y-%m-%d %H:%M:%S")
         print 'last_update :', last_update
 
         #Check if the directory exist
@@ -254,6 +253,7 @@ class MPDPodcast(object):
             FROM flux, item
             WHERE item.id = :flux_id
             """, {'flux_id':flux_id})
+            titre_flux=None
             for row in cursor.fetchall():
                 titre_flux, nom, status = row
                 if status==0:
@@ -261,7 +261,8 @@ class MPDPodcast(object):
                     assert os.path.exists(path)
                     #TODO Add here a confirmation 
                     os.remove(path)
-            os.removedirs(os.path.join(self.podcast_path, titre_flux))
+            if titre_flux:
+                os.removedirs(os.path.join(self.podcast_path, titre_flux))
 
             cursor.execute(""" 
             DELETE FROM item where flux= :flux_id
