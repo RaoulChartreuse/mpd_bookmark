@@ -6,7 +6,9 @@ The aim of this program is to make listening of long file like podcast more easy
 
 *How to use :
      MPD Bookmark
-     Just launch it while using MPD. (it is not yet a daemon)
+     If you want to bookmark all the file in the Podcast directory.
+     $ python mpd_bookmark.py --motif "Podcast" --field "file"
+
 
      MPD Podcast 
      To add a flux :
@@ -45,8 +47,11 @@ The aim of this program is to make listening of long file like podcast more easy
      $ python mpd_podcast.py --purge_readed
 
 *Dependency
-This scripts use the python-mpd2 library to communicate with MPD,
-feedparser to parse the rss.x
+     This scripts use the python-mpd2 library to communicate with MPD,
+     feedparser to parse the rss,
+     argparse to parse the argument,
+     urllib to download the files,
+     
 
 
 
