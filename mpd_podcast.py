@@ -83,7 +83,6 @@ class MPDPodcast(object):
         """
         P=self.parse_flux(url)
         #Getting the data
-        P=feedparser.parse(url)
         if P.feed=={}:
             print 'Flux vide'
             return -1
@@ -91,7 +90,7 @@ class MPDPodcast(object):
             title=P.feed.title
         print 'url         :', url
         print 'title       :', title
-        last_update = strftime("%Y-%m-%d %H:%M:%S",P.feed.published_parsed ) if P.feed['published_parsed']!=None else strftime("%Y-%m-%d %H:%M:%S")
+        last_update = strftime("%Y-%m-%d %H:%M:%S",P.feed.published_parsed ) if 'published_parsed' in P.feed else strftime("%Y-%m-%d %H:%M:%S")
         print 'last_update :', last_update
 
         #Check if the directory exist
