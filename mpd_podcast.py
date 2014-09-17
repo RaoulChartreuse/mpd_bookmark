@@ -190,7 +190,7 @@ class MPDPodcast(object):
             cursor=conn.cursor()
             cursor.execute("""
             SELECT * FROM item WHERE flux= :flux_id
-            ORDER BY id
+            ORDER BY item_date
             """,  {'flux_id':flux_id})
             items=[row for row in cursor.fetchall() ]
             return items
