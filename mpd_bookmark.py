@@ -65,11 +65,11 @@ class MPDBookmark(object):
 
     def boucle(self):
         
-        ts=time.time()
+
         state=self.client.status()['state']
         song=self.client.currentsong()
         print "song  :  ", song
-
+        ts=time.time()
         if 'elapsed' in song :
             ts-=float( song['elapsed'])
 
@@ -81,13 +81,15 @@ class MPDBookmark(object):
             if new_song!=song and new_song!={}:
                 self.start_song(new_song)
 
+            if song !={}:
+                print "update  ",
+                self.update_song(song, ts)
+
             state= new_state
             song= new_song
             if 'elapsed' in self.client.status():
                 ts=time.time()-float( self.client.status()['elapsed'])
-            if song !={}:
-                print "update  ",
-                self.update_song(song, ts)
+
 
 
 #Pour les tests

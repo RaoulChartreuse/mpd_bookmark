@@ -154,19 +154,17 @@ class TestBookmark:
         self.client.play()
         time.sleep(2)#If not the next command will not be executed
         self.client.seekcur(seek)
-        time.sleep(0.2)#If not the next command will not be executed
+        time.sleep(0.8)#If not the next command will not be executed
         self.client.next()
-        self.client.pause()
-        time.sleep(2)#Wait a bit the writing in MPD sticker
-        self.client.play()
+        time.sleep(3)#Wait a bit the writing in MPD sticker
         read_time=int(self.client.sticker_get('song', self.song1, 'last_up'))
         print read_time, 'vs', seek
         assert abs(read_time- seek)<=2.
         time.sleep(2)#If not the next command will not be executed
         self.client.seekcur(seek)
-        time.sleep(0.2)#If not the next command will not be executed
+        time.sleep(0.8)#If not the next command will not be executed
         self.client.previous()
-        time.sleep(0.2)#If not the next command will not be executed
+        time.sleep(2)#If not the next command will not be executed
         self.client.pause()
         time.sleep(2)#Wait a bit the writing in MPD sticker
         read_time=int(self.client.sticker_get('song', self.song2, 'last_up'))
