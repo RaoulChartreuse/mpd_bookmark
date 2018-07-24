@@ -24,7 +24,7 @@ def dict_factory(cursor, row):
 
 
 class MPDPodcast(object):
-    def __init__(self, 
+    def __init__(self,
                  db_filename = 'mpd_podcast.db' ,
                  schema_filename = 'mpd_podcast_schema.sql',
                  podcast_path = None,
@@ -44,7 +44,7 @@ class MPDPodcast(object):
                 #Test if the podcast directory is available
                 assert podcast_path != None
                 assert os.path.isdir(podcast_path)
-                
+
                 print 'Database creation'
                 with open(schema_filename, 'rt') as f:
                     schema= f.read()
@@ -75,7 +75,7 @@ class MPDPodcast(object):
         P=feedparser.parse(url)
         assert P!={}
         return P
-    
+
     def add_flux(self,url, title=None):
         """
         Add a flux to the database, using the url.
@@ -124,7 +124,7 @@ class MPDPodcast(object):
             print f['id'], '|', f['titre'], ' : ', f['last_update'], f['url']
             P=self.parse_flux(f['url'])
             self.check_flux(f['id'], P, f['last_update'])
-            
+
 
 
     def check_flux(self, flux_id, flux, date=None):
@@ -142,24 +142,24 @@ class MPDPodcast(object):
                             href=l['href']
                             item_date=strftime("%Y-%m-%d %H:%M:%S",
                                                f.published_parsed )
-                            #print '\t title :', item_title 
+                            #print '\t title :', item_title
                             #print '\t url   :', href
                             #print '\t date  :', item_date
                             status=0
                             cursor.execute("""
                             INSERT INTO item (titre, url, status, item_date, flux, nom)
                             VALUES ( :title, :url, :status, :item_date , :flux_id, '')
-                            """, {'title':item_title, 
+                            """, {'title':item_title,
                                   'url':href,
                                   'status':status,
                                   'item_date':item_date,
                                   'flux_id':flux_id})
-                            #print "\n"
+                            #print "\n""""
             #Update the last_update date:
             now=strftime("%Y-%m-%d %H:%M:%S",localtime())
-            
+
             cursor.execute("""
-            UPDATE flux 
+            UPDATE flux
             SET last_update= :now
             WHERE id = :flux_id
             """, {'flux_id':flux_id,
@@ -171,7 +171,7 @@ class MPDPodcast(object):
             conn.row_factory = dict_factory
             cursor=conn.cursor()
             cursor.execute("""
-            SELECT * FROM flux 
+            SELECT * FROM flux
             """)
             flux=[row for row in cursor.fetchall() ]
             return flux
@@ -200,24 +200,24 @@ class MPDPodcast(object):
         items=self.list_items(flux_id)
         print "id  |  Title * Date"
         for i in items:
-            print i['id'], ' | ', i['titre'], " * ", i['item_date'] 
+            print i['id'], ' | ', i['titre'], " * ", i['item_date']
 
 
     def __delete_item(self,item_id):
         with sqlite3.connect(self.db_filename) as conn:
             cursor=conn.cursor()
-            cursor.execute(""" 
+            cursor.execute("""
             SELECT flux.titre, item.nom, item.status
-            FROM  flux, item 
+            FROM  flux, item
             WHERE item.id= :item_id;
             """, {'item_id':item_id})
-            
+
             #Suppression physique
             titre_flux, nom, status = cursor.fetchone()
             if status!=0 :
                 path=os.path.join(self.podcast_path, titre_flux, nom)
                 assert os.path.exists(path)
-                #TODO Add here a confirmation 
+                #TODO Add here a confirmation
                 os.remove(path)
 
 
@@ -247,7 +247,7 @@ class MPDPodcast(object):
         with sqlite3.connect(self.db_filename) as conn:
             cursor=conn.cursor()
             #Suprimer les items
-            cursor.execute(""" 
+            cursor.execute("""
             SELECT flux.titre, item.nom
             FROM flux, item
             WHERE item.id = :flux_id
@@ -258,17 +258,17 @@ class MPDPodcast(object):
                 if status==0:
                     path=os.path.join(self.podcast_path, titre_flux, nom)
                     assert os.path.exists(path)
-                    #TODO Add here a confirmation 
+                    #TODO Add here a confirmation
                     os.remove(path)
             if titre_flux:
                 os.removedirs(os.path.join(self.podcast_path, titre_flux))
 
-            cursor.execute(""" 
+            cursor.execute("""
             DELETE FROM item where flux= :flux_id
             """, {'flux_id':flux_id})
-            cursor.execute(""" 
+            cursor.execute("""
             DELETE FROM flux where id= :flux_id
-            """, {'flux_id':flux_id}) 
+            """, {'flux_id':flux_id})
 
 
     def download_item(self, item_id, name=None):
@@ -284,13 +284,13 @@ class MPDPodcast(object):
                     name=nom
                 else :
                     name=url.split('/')[-1]
-            
+
             print url
             print "to :"
             path=os.path.join(self.podcast_path,
                               titre_flux,
                               name)
-            print path            
+            print path
             downloadFile(url, path)
 
             cursor.execute("""
@@ -299,17 +299,17 @@ class MPDPodcast(object):
             WHERE id = :item_id
             """, {'item_id':item_id, 'name':name})
             return path
-     
+
 
     def check_item(self):
         with sqlite3.connect(self.db_filename) as conn:
             cursor=conn.cursor()
-            cursor.execute(""" 
-            SELECT item.id, flux.titre, item.url, item.nom 
-            FROM  flux, item 
+            cursor.execute("""
+            SELECT item.id, flux.titre, item.url, item.nom
+            FROM  flux, item
             WHERE item.status=1;
             """)
-            
+
             for row in cursor.fetchall():
                 item_id, titre_flux, url, nom=row
                 path=os.path.join(titre_flux, nom)
@@ -324,8 +324,8 @@ class MPDPodcast(object):
     def is_readed(self, path):
         client=MPDClient()
         client.connect(self.host, self.port)
-        if self.password:     
-            client.password(self.password) 
+        if self.password:
+            client.password(self.password)
         song,=client.search('file', path)
         print song
         if 'last_up' in client.sticker_list('song', song['file']) :
@@ -348,8 +348,8 @@ class MPDPodcast(object):
                 Liste.append(i)
         for i in Liste:
             self.remove_dowloaded_item(i)
-       
-         
+
+
 
 def test():
     #pod='http://podcast.college-de-france.fr/xml/histoire.xml'
@@ -357,11 +357,11 @@ def test():
     w=MPDPodcast(podcast_path="/media/Disque_2/mp3/laurent/Podcast")
     w.add_flux(pod)
     w.print_flux()
-    w.remove_item(1)    
+    w.remove_item(1)
     #w.remove_flux(1)
     #w.print_items(1)
     path=w.download_item(3)
-    
+
     #Made the item readed
     path=path.split("/")[-2:]
     path=os.path.join(path[0], path[1])
@@ -376,33 +376,33 @@ def test():
 
     w.update()
 
-    
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='MPD Podcast is a simple comande line podcast manager. In combinaison with MPD Bookmark and MPD it can autoremove readed file.')
     parser.add_argument('-i', '--host', help='Host of MPD', default='localhost')
     parser.add_argument('-p', '--port', help='Port of MPD', default='6600')
-    parser.add_argument('-pw', '--password', help='Password of MPD', 
+    parser.add_argument('-pw', '--password', help='Password of MPD',
                         default=None)
-    parser.add_argument('-db', '--database', help='path of database', 
+    parser.add_argument('-db', '--database', help='path of database',
                         default='mpd_podcast.db')
     schema_filename = 'mpd_podcast_schema.sql'#Ce n'est pas un parametre depend de l'instalation
-    parser.add_argument('-pod', '--podcast_path', default=None,
+    parser.add_argument('-pod', '--podcast_path', default=".",
                         help='Absolute path to where store the dowloaded files')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-u', '--update', nargs='?', const=42,
                        help="Parse all the flux")
-    group.add_argument('-lf', '--list_flux', help='List all the Flux', 
+    group.add_argument('-lf', '--list_flux', help='List all the Flux',
                        nargs='?', const=42)
-    group.add_argument('-a', '--add_flux', 
+    group.add_argument('-a', '--add_flux',
                        help='Add the rss flux from the given url')
-    group.add_argument('-li', '--list_items',  
+    group.add_argument('-li', '--list_items',
                        help='List the item from the flux number')
-    group.add_argument('-d', '--dowload', 
+    group.add_argument('-d', '--dowload',
                        help='Download the item')
-    group.add_argument('-ri', '--remove_item', 
+    group.add_argument('-ri', '--remove_item',
                        help='Remove the item from the database and the filesystem')
-    group.add_argument('-rf', '--remove_flux', 
+    group.add_argument('-rf', '--remove_flux',
                        help='Remove the flux, all flux\'s items will be completly removed')
     group.add_argument('-del', '--delete_item',
                        help='Delete the item from the filesystem')
@@ -410,7 +410,7 @@ if __name__ == '__main__':
                        help='Delete the readed file')
     group.add_argument('-t', '--test', help='Lauch the test',nargs='?', const=42)
     args=parser.parse_args()
-    if args.test: 
+    if args.test:
         test()
         exit
 
@@ -439,6 +439,3 @@ if __name__ == '__main__':
         w.purge_readed()
     elif args.update:
         w.update()
-        
-
-    
