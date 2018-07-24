@@ -352,6 +352,10 @@ class MPDPodcast(object):
 
 
 def test():
+    """
+    ## TODO:     Test qui ne fonctionne que sur mon ancienne instalation
+        A refaire
+    """
     #pod='http://podcast.college-de-france.fr/xml/histoire.xml'
     pod="http://radiofrance-podcast.net/podcast09/rss_11074.xml"
     w=MPDPodcast(podcast_path="/media/Disque_2/mp3/laurent/Podcast")
